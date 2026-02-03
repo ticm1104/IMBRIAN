@@ -1,28 +1,24 @@
 /**
- * ENGLISH LEARNING PLATFORM ENGINE (FULL VERSION)
- 
+ * ENGLISH LEARNING PLATFORM ENGINE (VERSION 2.1 - Flexible Video ID)
  */
 
 (function() {
+    // ==========================================
+    // 1. INJECT CSS
+    // ==========================================
     const style = document.createElement('style');
     style.innerHTML = `
-        /* LAYOUT & GENERAL */
         .learning-platform { max-width: 850px; margin: 0 auto; font-family: 'Segoe UI', Arial, sans-serif; color: #000; background: #fff; padding: 5px; box-sizing: border-box; }
         .video-section { position: sticky; top: 0; background: #fff; z-index: 1000; padding-bottom: 10px; border-bottom: 2px solid #000; }
         .video-frame { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); background: #000; }
         .video-frame iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-        
         .instruction-line { font-style: italic; font-size: 14px; color: #333; margin-bottom: 15px; display: block; margin-top: 10px; }
         .shortcut-info { text-align: center; font-size: 12px; margin-top: 8px; color: #444; }
         .shortcut-info b { background: #eee; padding: 2px 5px; border-radius: 3px; border: 1px solid #ccc; }
-
-        /* TABS MENU */
         .exercise-tabs { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 15px; border-bottom: 2px solid #000; }
         .tab-link { border: 1px solid #ddd; border-bottom: none; padding: 10px 15px; cursor: pointer; background: #f1f1f1; border-radius: 5px 5px 0 0; font-weight: bold; font-size: 12px; color: #444; flex-grow: 1; text-align: center; }
         .tab-link:hover { background: #e0e0e0; }
         .tab-link.active { background: #000; color: #fff; border-color: #000; }
-
-        /* PANEL & CONTENT */
         .tab-panel { padding: 15px; border: 1px solid #000; border-top: none; border-radius: 0 0 5px 5px; min-height: 400px; }
         .hidden { display: none !important; }
         .btn-submit { background: #e74c3c; color: white; border: none; padding: 12px 40px; border-radius: 4px; cursor: pointer; font-size: 16px; margin: 20px auto; font-weight: bold; display: block; transition: 0.3s; }
@@ -30,40 +26,31 @@
         .part-nav { margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
         .btn-part { padding: 5px 15px; cursor: pointer; background: #ddd; border: none; border-radius: 3px; font-weight: bold; }
         .btn-part:hover { background: #ccc; }
-
-        /* EX 2, 3: RADIO BUTTONS */
         .q-item { margin-bottom: 20px; padding: 15px; border-bottom: 1px solid #eee; transition: 0.3s; }
         .options-group { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
         .radio-btn { cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 8px 20px; border: 2px solid #ddd; border-radius: 25px; font-weight: bold; font-size: 14px; transition: 0.2s; user-select: none; }
         .options-group input[type="radio"] { display: none; }
         .options-group input[type="radio"]:checked + .radio-btn { background: #000; color: #fff; border-color: #000; }
-
-        /* EX 4: MATCHING */
         .match-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; }
         .match-input { width: 40px; text-align: center; border: 1px solid #000; font-weight: bold; padding: 5px; text-transform: uppercase; margin-left: 10px; }
-
-        /* EX 5: CLOZE */
         .cloze-select { border: none; border-bottom: 2px solid #e74c3c; font-weight: bold; font-size: 16px; cursor: pointer; padding: 0 5px; background: transparent; }
-        
-        /* EX 6: PILL SELECTION */
         .pill-container { display: inline-flex; background: #f0f0f0; border-radius: 20px; padding: 3px; margin-left: 10px; vertical-align: middle; border: 1px solid #ccc; }
         .pill-item { display: none; }
         .pill-label { padding: 4px 15px; border-radius: 17px; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.3s; color: #555; }
         .pill-item:checked + .pill-label { background: #3498db; color: #fff; }
-
-        /* HIGHLIGHT & FEEDBACK */
         .cue-row { padding: 8px 10px; border-left: 4px solid transparent; line-height: 1.6; font-size: 17px; color: #000; margin-bottom: 5px; }
         .cue-active { border-left-color: #3498db; background: #e3f2fd; font-weight: bold; }
         .ans-hint { color: #27ae60; font-size: 13px; font-weight: bold; margin-left: 8px; font-style: italic; }
         .score-box { margin-top: 15px; padding: 15px; border-radius: 4px; text-align: center; font-size: 18px; font-weight: bold; border: 2px solid #27ae60; background: #f0fff4; color: #1e7e34; display: none; }
         .input-fill { border:none; border-bottom:1px solid #000; text-align:center; font-weight:bold; outline: none; background: transparent; color: #000; }
-
-        /* UTILS */
         .loading-msg { padding: 40px; text-align: center; font-size: 18px; color: #666; background: #f9f9f9; border-radius: 4px; }
         .error-msg { color: #e74c3c; padding: 20px; text-align: center; border: 1px solid #e74c3c; background: #fff5f5; border-radius: 4px; }
     `;
     document.head.appendChild(style);
 
+    // ==========================================
+    // 2. MAIN LOGIC
+    // ==========================================
     const container = document.getElementById('learning-app-root');
     let cfg = {}; 
     let player, syncTimer, activeCues = [];
@@ -71,8 +58,12 @@
     init();
 
     async function init() {
+        if(!container) return;
         
         const dataUrl = container.getAttribute('data-source');
+        // Lấy Video ID từ HTML (Ưu tiên số 1)
+        const htmlVideoId = container.getAttribute('data-video-id');
+
         if(!dataUrl) { 
             container.innerHTML = '<div class="error-msg">⚠️ Missing <code>data-source</code> attribute.</div>'; 
             return; 
@@ -84,12 +75,23 @@
             const response = await fetch(dataUrl);
             if(!response.ok) throw new Error("HTTP " + response.status);
             cfg = await response.json();
+
+            // Nếu HTML có ID thì dùng ID đó, nếu không thì dùng ID trong file JSON
+            if(htmlVideoId) {
+                cfg.videoId = htmlVideoId;
+                console.log("Using Video ID from HTML:", htmlVideoId);
+            }
+
+            // Kiểm tra cuối cùng
+            if(!cfg.videoId) {
+                throw new Error("No Video ID found (checked HTML attribute and JSON file).");
+            }
             
             renderApp();
             loadYoutubeApi();
 
         } catch (e) {
-            container.innerHTML = `<div class="error-msg">❌ Error loading data: ${e.message}<br>Check your JSON URL.</div>`;
+            container.innerHTML = `<div class="error-msg">❌ Error: ${e.message}</div>`;
             console.error(e);
         }
     }
@@ -160,6 +162,7 @@
             </div>`;
         }
 
+        html += `</div></div>`; 
         container.innerHTML = html;
         
         renderStatic();
@@ -170,6 +173,7 @@
     function loadYoutubeApi() {
         if (!window.YT) {
             var tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
             var firstScriptTag = document.getElementsByTagName('script')[0];
             firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
         } else {
@@ -182,7 +186,7 @@
     }
 
     function createPlayer() {
-        if(document.getElementById('player') && !player) {
+        if(document.getElementById('player') && !player && cfg.videoId) {
             player = new YT.Player('player', {
                 height:'100%', width:'100%', videoId: cfg.videoId
             });
@@ -232,12 +236,10 @@
             if(evt && evt.currentTarget) evt.currentTarget.classList.add("active");
             clearInterval(syncTimer);
         },
-        
         startSync: (pIdx, type) => {
             const config = (type === 'ex1') ? cfg.ex1 : cfg.ex6;
             if(!config || !config[pIdx]) return;
             activeCues = config[pIdx].cues;
-            
             clearInterval(syncTimer);
             const btn = document.getElementById(`sub-btn-${type}`);
             if(btn) btn.classList.remove('hidden');
@@ -279,7 +281,6 @@
                 });
             }, 100);
         },
-
         checkEx1: () => {
             document.querySelectorAll('#ex1 .input-fill').forEach(i => {
                 let cor = i.getAttribute('data-ans');
