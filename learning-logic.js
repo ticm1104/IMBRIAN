@@ -2,11 +2,14 @@ let player, syncTimer, activeCues = [];
 let sheetData = {};
 
 async function initPlatform() {
+    // 1. Force YouTube API to load immediately
     loadYouTubeAPI(); 
 
     try {
         const response = await fetch(SHEET_CSV_URL);
         const csvText = await response.text();
+        
+        // CSV Parsing logic
         const rows = csvText.split('\n').map(row => row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
         const contentRow = rows.find(r => r[0] && r[0].replace(/"/g, "").trim() === LESSON_ID);
 
@@ -20,7 +23,7 @@ async function initPlatform() {
                 try {
                     return JSON.parse(clean);
                 } catch (e) {
-                    console.error("JSON Syntax Error in cell:", clean);
+                    console.error("JSON Syntax Error. Check double quotes in cell:", clean);
                     return null;
                 }
             };
@@ -35,13 +38,14 @@ async function initPlatform() {
                 ex6: parseCell(contentRow[7])
             };
 
-            if (player && player.loadVideoById) {
+            // Update Video ID once data is fetched
+            if (player && player.loadVideoById && sheetData.videoId) {
                 player.loadVideoById(sheetData.videoId);
             }
             renderStaticExercises();
         }
     } catch (err) {
-        console.error("Data loading failed:", err);
+        console.error("Critical: Failed to load sheet data:", err);
     }
 }
 
@@ -58,32 +62,32 @@ function loadYouTubeAPI() {
 window.onYouTubeIframeAPIReady = function() {
     player = new YT.Player('player', {
         height: '100%', width: '100%', 
-        videoId: (sheetData && sheetData.videoId) ? sheetData.videoId : "0zksokY32r4",
+        videoId: "0zksokY32r4", // Fallback ID
         playerVars: { 'rel': 0, 'showinfo': 0, 'autoplay': 0 },
-        events: { 'onReady': () => { if(sheetData.ex2) renderStaticExercises(); } }
+        events: { 'onReady': () => { if(sheetData && sheetData.ex2) renderStaticExercises(); } }
     });
 };
 
 function renderStaticExercises() {
     if (sheetData.ex2) {
-        let h2 = "";
+        let h = "";
         sheetData.ex2.forEach((d, i) => {
-            h2 += `<div class="q-item" id="ex2q-${i}"><span>${i+1}. ${d.q}</span><div class="options-group">` +
+            h += `<div class="q-item" id="ex2q-${i}"><span>${i+1}. ${d.q}</span><div class="options-group">` +
                   `<input type="radio" id="e2r${i}t" name="e2r${i}" value="true"><label for="e2r${i}t" class="radio-btn">T</label>` +
                   `<input type="radio" id="e2r${i}f" name="e2r${i}" value="false"><label for="e2r${i}f" class="radio-btn">F</label>` +
                   `<input type="radio" id="e2r${i}n" name="e2r${i}" value="not given"><label for="e2r${i}n" class="radio-btn">NG</label></div></div>`;
         });
-        document.getElementById('ex2-workspace').innerHTML = h2;
+        document.getElementById('ex2-workspace').innerHTML = h;
     }
 
     if (sheetData.ex3) {
-        let h3 = "";
+        let h = "";
         sheetData.ex3.forEach((d, i) => {
-            h3 += `<div class="q-item" id="ex3q-${i}"><b>${i+1}. ${d.q}</b><div class="options-group">`;
-            d.o.forEach((opt, idx) => h3 += `<input type="radio" id="e3r${i}${idx}" name="e3r${i}" value="${idx}"><label for="e3r${i}${idx}" class="radio-btn">${String.fromCharCode(65+idx)}. ${opt}</label>`);
-            h3 += `</div></div>`;
+            h += `<div class="q-item" id="ex3q-${i}"><b>${i+1}. ${d.q}</b><div class="options-group">`;
+            d.o.forEach((opt, idx) => h += `<input type="radio" id="e3r${i}${idx}" name="e3r${i}" value="${idx}"><label for="e3r${i}${idx}" class="radio-btn">${String.fromCharCode(65+idx)}. ${opt}</label>`);
+            h += `</div></div>`;
         });
-        document.getElementById('ex3-workspace').innerHTML = h3;
+        document.getElementById('ex3-workspace').innerHTML = h;
     }
 
     if (sheetData.ex4) {
@@ -119,7 +123,10 @@ window.startSync = function(pIdx, type) {
     if (!config || !config[pIdx]) return;
     activeCues = config[pIdx].cues;
     clearInterval(syncTimer);
-    document.getElementById(`sub-btn-${type}`).classList.remove('hidden');
+    
+    let subBtn = document.getElementById(`sub-btn-${type}`);
+    if(subBtn) subBtn.classList.remove('hidden');
+
     let html = "";
     activeCues.forEach(c => {
         let txt = c.text;
@@ -138,60 +145,19 @@ window.startSync = function(pIdx, type) {
     }, 100);
 }
 
-window.checkEx1 = function() {
-    document.querySelectorAll('#ex1 .input-fill').forEach(i => {
-        let cor = i.getAttribute('data-ans');
-        if(i.value.trim().toLowerCase() === cor) i.style.color="#27ae60"; 
-        else { i.style.color="#e74c3c"; i.insertAdjacentHTML('afterend', `<span class="ans-hint">(${cor})</span>`); }
-    });
-};
+// Result Checkers
+window.checkEx1 = () => document.querySelectorAll('#ex1 .input-fill').forEach(i => { let cor = i.getAttribute('data-ans'); if(i.value.trim().toLowerCase() === cor) i.style.color="#27ae60"; else { i.style.color="#e74c3c"; i.insertAdjacentHTML('afterend', `<span class="ans-hint">(${cor})</span>`); } });
+window.checkEx2 = () => sheetData.ex2.forEach((d, i) => { let sel = document.querySelector(`input[name="e2r${i}"]:checked`); let row = document.getElementById(`ex2q-${i}`); if(sel && sel.value === d.a) row.style.background="#d4edda"; else { row.style.background="#f8d7da"; row.insertAdjacentHTML('beforeend', `<span class="ans-hint">(${d.a.toUpperCase()})</span>`); } });
+window.checkEx3 = () => sheetData.ex3.forEach((d, i) => { let sel = document.querySelector(`input[name="e3r${i}"]:checked`); let row = document.getElementById(`ex3q-${i}`); if(sel && parseInt(sel.value) === d.a) row.style.background="#d4edda"; else { row.style.background="#f8d7da"; row.insertAdjacentHTML('beforeend', `<span class="ans-hint">(${String.fromCharCode(65+d.a)})</span>`); } });
+window.checkEx4 = () => document.querySelectorAll('.match-input').forEach(i => { let idx = i.getAttribute('data-idx'); if(i.value.toUpperCase() === sheetData.ex4.ans[idx]) i.style.background="#d4edda"; else { i.style.background="#f8d7da"; i.insertAdjacentHTML('afterend', `<span class="ans-hint">(${sheetData.ex4.ans[idx]})</span>`); } });
+window.checkEx5 = () => document.querySelectorAll('.cloze-select').forEach(s => { if(s.value === s.getAttribute('data-ans')) s.style.color="#27ae60"; else { s.style.color="#e74c3c"; s.insertAdjacentHTML('afterend', `<span class="ans-hint">(${s.getAttribute('data-ans')})</span>`); } });
+window.checkEx6 = () => activeCues.forEach(c => { let sel = document.querySelector(`input[name="r${c.id}"]:checked`); let row = document.getElementById(`ex6-row-${c.id}`); if(sel && sel.value === c.correct) row.style.background="#d4edda"; else { row.style.background="#f8d7da"; row.insertAdjacentHTML('beforeend', `<span class="ans-hint">(${c.correct})</span>`); } });
 
-window.checkEx2 = function() {
-    sheetData.ex2.forEach((d, i) => {
-        let sel = document.querySelector(`input[name="e2r${i}"]:checked`);
-        let row = document.getElementById(`ex2q-${i}`);
-        if(sel && sel.value === d.a) row.style.background="#d4edda"; 
-        else { row.style.background="#f8d7da"; row.insertAdjacentHTML('beforeend', `<span class="ans-hint">(${d.a.toUpperCase()})</span>`); }
-    });
-};
-
-window.checkEx3 = function() {
-    sheetData.ex3.forEach((d, i) => {
-        let sel = document.querySelector(`input[name="e3r${i}"]:checked`);
-        let row = document.getElementById(`ex3q-${i}`);
-        if(sel && parseInt(sel.value) === d.a) row.style.background="#d4edda"; 
-        else { row.style.background="#f8d7da"; row.insertAdjacentHTML('beforeend', `<span class="ans-hint">(${String.fromCharCode(65+d.a)})</span>`); }
-    });
-};
-
-window.checkEx4 = function() {
-    document.querySelectorAll('.match-input').forEach(i => {
-        let idx = i.getAttribute('data-idx');
-        if(i.value.toUpperCase() === sheetData.ex4.ans[idx]) i.style.background="#d4edda"; 
-        else { i.style.background="#f8d7da"; i.insertAdjacentHTML('afterend', `<span class="ans-hint">(${sheetData.ex4.ans[idx]})</span>`); }
-    });
-};
-
-window.checkEx5 = function() {
-    document.querySelectorAll('.cloze-select').forEach(s => {
-        if(s.value === s.getAttribute('data-ans')) s.style.color="#27ae60"; 
-        else { s.style.color="#e74c3c"; s.insertAdjacentHTML('afterend', `<span class="ans-hint">(${s.getAttribute('data-ans')})</span>`); }
-    });
-};
-
-window.checkEx6 = function() {
-    activeCues.forEach(c => {
-        let sel = document.querySelector(`input[name="r${c.id}"]:checked`);
-        let row = document.getElementById(`ex6-row-${c.id}`);
-        if(sel && sel.value === c.correct) row.style.background="#d4edda"; 
-        else { row.style.background="#f8d7da"; row.insertAdjacentHTML('beforeend', `<span class="ans-hint">(${c.correct})</span>`); }
-    });
-};
-
+// Shortcuts
 document.addEventListener('keydown', (e) => {
     if(e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
-        if(e.ctrlKey && e.code === 'Space') { player.getPlayerState() === 1 ? player.pauseVideo() : player.playVideo(); e.preventDefault(); }
-        if(e.ctrlKey && e.code === 'ArrowLeft') player.seekTo(player.getCurrentTime() - 3);
+        if(e.ctrlKey && e.code === 'Space') { if(player && player.getPlayerState) player.getPlayerState() === 1 ? player.pauseVideo() : player.playVideo(); e.preventDefault(); }
+        if(e.ctrlKey && e.code === 'ArrowLeft') if(player && player.seekTo) player.seekTo(player.getCurrentTime() - 3);
     }
 });
 
