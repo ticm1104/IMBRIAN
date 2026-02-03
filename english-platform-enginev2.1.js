@@ -118,6 +118,8 @@
             html += `
             <div id="ex1" class="tab-content">
                 <span class="instruction-line">Instruction: Listen to the conversation and fill in the blanks.</span>
+                <div class="shortcut-info">⌨️ <b>Ctrl + Space</b>: Play/Pause | <b>Ctrl + ←</b>: Back 3s</div>
+                <p></p>
                 <div class="part-nav">
                     ${cfg.ex1.map((_,i) => `<button class="btn-part" onclick="app.startSync(${i}, 'ex1')">Part ${i+1}</button>`).join('')}
                 </div>
@@ -154,6 +156,8 @@
             html += `
             <div id="ex6" class="tab-content hidden">
                 <span class="instruction-line">Instruction: Listen and choose the correct word.</span>
+                <div class="shortcut-info">⌨️ <b>Ctrl + Space</b>: Play/Pause | <b>Ctrl + ←</b>: Back 3s</div>
+                <p></p>
                 <div class="part-nav">
                      ${cfg.ex6.map((_,i) => `<button class="btn-part" onclick="app.startSync(${i}, 'ex6')">Part ${i+1}</button>`).join('')}
                 </div>
@@ -359,5 +363,6 @@
             }
         }
     });
+
 
 })();
